@@ -1,4 +1,2 @@
-# SIFTrain
-An android rhythm game based on Love Live School Idol Festival in combination with elements from osu!
+This is my personal branch of SIFTrain, for features that didn't make it upstream or are awaiting merge.
 
-Written in JAVA, using the [libgdx library](https://github.com/libgdx/libgdx)
