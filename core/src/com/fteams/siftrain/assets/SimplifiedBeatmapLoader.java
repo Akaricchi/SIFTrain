@@ -61,10 +61,9 @@ public class SimplifiedBeatmapLoader extends AsynchronousAssetLoader<List, Simpl
     private void loadAsyncStandard(AssetManager manager, String fileName, FileHandle file, BeatmapParameter parameter) {
 
         FileHandle handle = resolve(fileName);
-        String jsonDefinition = handle.readString("UTF-8");
         SongFileInfo info = new SongFileInfo();
         try {
-            info = new Gson().fromJson(jsonDefinition, SimpleSong.class);
+            info = new Gson().fromJson(handle.reader("UTF-8"), SimpleSong.class);
         } catch (Exception e) {
             info = new SimpleSong();
             info.song_name = "Error: Invalid JSON format " + handle.file().getName();
