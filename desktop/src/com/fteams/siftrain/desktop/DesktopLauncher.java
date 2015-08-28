@@ -7,6 +7,10 @@ import com.fteams.siftrain.SifTrain;
 public class DesktopLauncher {
 	public static void main (String[] arg) {
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
-		new LwjglApplication(new SifTrain(), "SIF Train", 1280, 720);
+		config.width = 1280;
+		config.height = 720;
+		config.resizable = false;
+		config.title = "SIF Train";
+		new LwjglApplication(new SifTrain(), config);
 	}
 }
