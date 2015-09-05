@@ -27,9 +27,8 @@ public class SimpleSongLoader {
     public SimpleSong loadSong(SongFileInfo beatmap) {
         FileHandle handle = Gdx.files.absolute(Gdx.files.getExternalStoragePath() + "/" + beatmap.getFileName());
         SimpleSong song = null;
-        String jsonDefinition = handle.readString("UTF-8");
         try {
-            song = new Gson().fromJson(jsonDefinition, SimpleSong.class);
+            song = new Gson().fromJson(handle.reader("UTF-8"), SimpleSong.class);
             validateSong(song);
             song.setValid(true);
             beatmap.song_name = song.song_name;
