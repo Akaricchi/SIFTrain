@@ -20,6 +20,8 @@ import com.fteams.siftrain.util.SongUtils;
 import com.fteams.siftrain.util.random.SimpleRandomizer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class World {
 
@@ -104,6 +106,12 @@ public class World {
             CircleMark mark = new CircleMark(x, y, notesInfo, noteSpeed, delay);
             marks.add(mark);
         }
+
+        for(CircleMark mark : marks) {
+            if(mark.getNoteInfo().link >= 0)
+                mark.setLink(marks.get(mark.getNoteInfo().link));
+        }
+
         marks.sort();
 
         if (GlobalConfiguration.random) {

@@ -5,7 +5,7 @@ public class SimpleNotesInfo implements Comparable<SimpleNotesInfo>{
     public Integer effect;
     public Double effect_value;
     public Integer position;
-
+    public Integer link = -1;
 
     @Override
     public int compareTo(SimpleNotesInfo o) {

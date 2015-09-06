@@ -9,6 +9,8 @@ import com.fteams.siftrain.assets.Results;
 import com.fteams.siftrain.entities.SimpleNotesInfo;
 import com.fteams.siftrain.util.SongUtils;
 
+import javafx.scene.shape.Circle;
+
 public class CircleMark implements Comparable<CircleMark> {
 
     public float getSize() {
@@ -63,6 +65,8 @@ public class CircleMark implements Comparable<CircleMark> {
     public Integer destination = 0;
     public Double speed;
     SimpleNotesInfo note;
+
+    private CircleMark link = null;
 
     private float spawnTime;
     private float despawnTime;
@@ -350,5 +354,18 @@ public class CircleMark implements Comparable<CircleMark> {
 
     public Vector2 getPosition() {
         return position;
+    }
+
+    public CircleMark getLink() {
+        return link;
+    }
+
+    public void setLink(CircleMark link) {
+        this.link = link;
+        link.effect |= SongUtils.NOTE_TYPE_LINKED_TO;
+    }
+
+    public SimpleNotesInfo getNoteInfo() {
+        return note;
     }
 }

@@ -396,6 +396,15 @@ public class WorldRenderer {
         spriteBatch.draw(clamped, from.x - w * 0.5f, from.y, w * 0.5f, 0f, w, h, 1f, 1f, delta.angle() + 90);
     }
 
+    private Vector2 circlePosToScreenCoords(Vector2 pos, float centerX, float centerY) {
+        pos = pos.cpy();
+        pos.x *= ppuX;
+        pos.y *= ppuY;
+        pos.x += centerX;
+        pos.y += centerY;
+        return pos;
+    }
+
     private void drawCircles() {
         float centerX = this.positionOffsetX + width / 2;
         float centerY = this.positionOffsetY + height - height * 0.25f;
@@ -408,29 +417,22 @@ public class WorldRenderer {
             float alpha = mark.alpha;
             float alpha2 = mark.alpha2;
             Color c = spriteBatch.getColor();
+            CircleMark link = mark.getLink();
 
             if (mark.hold && mark.waiting) {
-                if(mark.holding)
-                    spriteBatch.setColor(1.0f, 1.0f, 0.5f, alpha * alpha2 * 0.45f * (0.75f + 0.25f * MathUtils.sin(time * 7f + mark.accuracyHitStartTime)));
-                else
+                if(mark.holding) {
+                    float a = alpha * alpha2 * 0.45f * (0.75f + 0.25f * MathUtils.sin(time * 7f + mark.accuracyHitStartTime));
+
+                    if(link == null)
+                        spriteBatch.setColor(1.0f, 1.0f, 0.5f, a);
+                    else
+                        spriteBatch.setColor(0.5f, 1.0f, 1.0f, a);
+                } else
                     spriteBatch.setColor(c.r, c.g, c.b, alpha * alpha * alpha2 * 0.45f);
 
-                float orgSize = mark.getSize2() * size;
-                float dstSize = mark.getSize()  * size;
-
-                Vector2 org = mark.getHoldReleasePosition().cpy();
-                org.x *= ppuX;
-                org.y *= ppuY;
-                org.x += centerX;
-                org.y += centerY;
-
-                Vector2 dst = mark.getPosition().cpy();
-                dst.x *= ppuX;
-                dst.y *= ppuY;
-                dst.x += centerX;
-                dst.y += centerY;
-
-                drawHoldBeam(org, dst, orgSize, dstSize);
+                Vector2 org = circlePosToScreenCoords(mark.getHoldReleasePosition(), centerX, centerY);
+                Vector2 dst = circlePosToScreenCoords(mark.getPosition(), centerX, centerY);
+                drawHoldBeam(org, dst, mark.getSize2() * size, mark.getSize() * size);
 
                 spriteBatch.setColor(c.r, c.g, c.b, alpha);
             }
@@ -444,6 +446,16 @@ public class WorldRenderer {
             }
 
             if (mark.endVisible) {
+                if(link != null && link.visible) {
+                    spriteBatch.setColor(c.r, c.g, c.b, alpha * alpha * alpha2 * link.alpha * 0.45f);
+
+                    Vector2 org = circlePosToScreenCoords(mark.getHoldReleasePosition(), centerX, centerY);
+                    Vector2 dst = circlePosToScreenCoords(link.getPosition(), centerX, centerY);
+                    drawHoldBeam(org, dst, mark.getSize2() * size, link.getSize() * size);
+
+                    spriteBatch.setColor(c.r, c.g, c.b, alpha);
+                }
+
                 TextureRegion region = circleHoldEnd;
                 spriteBatch.setColor(c.r, c.g, c.b, alpha * alpha2);
                 spriteBatch.draw(region, centerX - size * mark.getSize2() / 2 + mark.getHoldReleasePosition().x * ppuX, centerY - size * mark.getSize2() / 2 + mark.getHoldReleasePosition().y * ppuY, size * mark.getSize2(), size * mark.getSize2());
@@ -457,7 +469,9 @@ public class WorldRenderer {
     private TextureRegion selectTextureForCircle(int effectMask) {
         // TODO: Remove the holdStart texture as it's no longer used
 
-        if ((effectMask & (SongUtils.NOTE_TYPE_NORMAL | SongUtils.NOTE_TYPE_HOLD)) != 0) {
+        if ((effectMask & (SongUtils.NOTE_TYPE_LINKED_TO)) != 0) {
+            return circleHoldEnd;
+        } else if ((effectMask & (SongUtils.NOTE_TYPE_NORMAL | SongUtils.NOTE_TYPE_HOLD)) != 0) {
             if ((effectMask & (SongUtils.NOTE_TYPE_SIMULT_START | SongUtils.NOTE_TYPE_SIMULT_END)) != 0) {
                 return circleSim;
             } else return circle;

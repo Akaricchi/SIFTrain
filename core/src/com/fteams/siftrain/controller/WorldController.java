@@ -406,30 +406,74 @@ public class WorldController implements Music.OnCompletionListener {
     public void pressed(int screenX, int screenY, int pointer, int button, float ppuX, float ppuY, int width, int height) {
         playMusicOnDemand();
 
-        int matchedId = getTapZoneForCoordinates(screenX, screenY, ppuX, ppuY, width, height, pointer);
+        TapZone zone = getTapZoneForCoordinates(screenX, screenY, ppuX, ppuY, width, height, pointer, true);
 
-        if (matchedId == -1) {
+        if (zone == null) {
             return;
         }
 
-        hit(matchedId);
+        hit(zone);
     }
 
     public void released(int screenX, int screenY, int pointer, int button, float ppuX, float ppuY, int width, int height) {
-        int matchedId = -1;
+        TapZone matchedZone = null;
         for (TapZone zone : tapZones) {
             if (zone.getId().equals(pointerToZoneId.get(pointer))) {
-                matchedId = zone.getId();
+                matchedZone = zone;
                 pointerToZoneId.remove(pointer);
                 zone.setState(TapZone.State.STATE_PRESSED, false);
             }
         }
 
-        if (matchedId == -1) {
+        if (matchedZone == null) {
             return;
         }
-        release(matchedId);
 
+        release(matchedZone);
+
+    }
+
+    public void dragged(int screenX, int screenY, int pointer, float ppuX, float ppuY, int width, int height) {
+        int zoneid = -1;
+
+        try {
+            zoneid = pointerToZoneId.get(pointer);
+        } catch(NullPointerException e) {
+            return;
+        }
+
+        TapZone zone = null;
+
+        for(TapZone z : tapZones) {
+            if(z.getId() == zoneid) {
+                zone = z;
+                break;
+            }
+        }
+
+        if(zone == null || zone.lastHitMark == null)
+            return;
+
+        CircleMark link = zone.lastHitMark.getLink();
+
+        if(link == null)
+            return;;
+
+        TapZone newZone = getTapZoneForCoordinates(screenX, screenY, ppuX, ppuY, width, height, pointer, false);
+
+        if(newZone != zone) {
+            if(zone.getState(TapZone.State.STATE_PRESSED)) {
+                release(zone);
+                zone.setState(TapZone.State.STATE_PRESSED, false);
+            }
+            //pointerToZoneId.remove(pointer);
+
+            if(newZone != null && newZone.getId() == link.notePosition) {
+                newZone.setState(TapZone.State.STATE_PRESSED, true);
+                pointerToZoneId.put(pointer, newZone.getId());
+                hit(newZone);
+            }
+        }
     }
 
     private void playMusicOnDemand() {
@@ -452,7 +496,7 @@ public class WorldController implements Music.OnCompletionListener {
         }
     }
 
-    private int getTapZoneForCoordinates(int screenX, int screenY, float ppuX, float ppuY, int width, int height, int pointer) {
+    private TapZone getTapZoneForCoordinates(int screenX, int screenY, float ppuX, float ppuY, int width, int height, int pointer, boolean alterState) {
         float centerX = world.offsetX + width / 2;
         float centerY = world.offsetY + height * 0.25f;
 
@@ -463,7 +507,7 @@ public class WorldController implements Music.OnCompletionListener {
         float relativeDistance = (float) Math.sqrt(relativeX * relativeX + relativeY * relativeY);
         float relativeAngle = (float) Math.acos(relativeX / relativeDistance);
 
-        int matchedId = -1;
+        TapZone matchedZone = null;
         for (TapZone zone : tapZones) {
             float x = zone.getPosition().x;
             float y = zone.getPosition().y;
@@ -471,25 +515,32 @@ public class WorldController implements Music.OnCompletionListener {
             if (tapZoneDistance - circleRadius * 2 < relativeDistance && relativeDistance < tapZoneDistance + circleRadius * 2) {
                 float tapAngle = (float) Math.acos(x / tapZoneDistance);
                 if (tapAngle - Math.PI / 16 < relativeAngle && relativeAngle < tapAngle + Math.PI / 16 && relativeY < circleRadius) {
-                    matchedId = zone.getId();
-                    zone.setState(TapZone.State.STATE_PRESSED, true);
-                    pointerToZoneId.put(pointer, matchedId);
+                    matchedZone = zone;
+
+                    if (alterState) {
+                        zone.setState(TapZone.State.STATE_PRESSED, true);
+                        pointerToZoneId.put(pointer, zone.getId());
+                    }
                 }
             }
         }
-        return matchedId;
+
+        return matchedZone;
     }
 
-    private void hit(int matchedId) {
+    private void hit(TapZone zone) {
         for (CircleMark mark : marks) {
             if (!mark.waiting) {
                 continue;
             }
-            if (mark.notePosition == (matchedId)) {
+            if (mark.notePosition == zone.getId()) {
                 CircleMark.Accuracy accuracy = mark.hit();
+
                 // if we tap too early, ignore this tap
                 if (accuracy == CircleMark.Accuracy.NONE)
                     continue;
+
+                zone.lastHitMark = mark;
 
                 playSoundForAccuracy(accuracy);
                 if (!mark.hold) {
@@ -516,7 +567,7 @@ public class WorldController implements Music.OnCompletionListener {
         }
     }
 
-    private void release(int matchedId) {
+    private void release(TapZone zone) {
         for (CircleMark mark : marks) {
             if (!mark.hold) {
                 continue;
@@ -525,7 +576,7 @@ public class WorldController implements Music.OnCompletionListener {
                 continue;
             }
 
-            if (matchedId == mark.notePosition) {
+            if (mark.notePosition == zone.getId()) {
                 CircleMark.Accuracy accuracy = mark.release();
                 // releasing in the same zone as an upcoming hold can cause 'None' results
                 if (accuracy == CircleMark.Accuracy.NONE)
